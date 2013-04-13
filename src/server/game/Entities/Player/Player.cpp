@@ -1714,11 +1714,8 @@ void Player::Update(uint32 p_time)
 
     if (isAlive())
     {
-        if (!HasAuraType(SPELL_AURA_PREVENT_REGENERATE_POWER))
-            SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_REGENERATE_POWER);
-
-        if (!_regenTimer)
-            RegenerateAll();
+        _regenTimer += p_time;
+        RegenerateAll();
     }
 
     if (_deathState == JUST_DIED)
@@ -1801,6 +1798,7 @@ void Player::Update(uint32 p_time)
 
     Pet* pet = GetPet();
     if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityRange()) && !pet->isPossessed())
+    //if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGUID() && (pet->GetGUID() != GetCharmGUID())))
         RemovePet(pet, PET_SAVE_AS_CURRENT, true);
 
     //we should execute delayed teleports only for alive(!) players
@@ -2545,15 +2543,13 @@ void Player::Regenerate(Powers power)
     {
         case POWER_MANA:
         {
-            if (HasAuraType(SPELL_AURA_PREVENT_REGENERATE_POWER))
-                break;
-            
+            bool recentCast = IsUnderLastManaUseEffect();
             float ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA);
 
             if (getLevel() < 15)
                 ManaIncreaseRate = sWorld->getRate(RATE_POWER_MANA) * (2.066f - (getLevel() * 0.066f));
 
-            if (isInCombat()) // SkyFire Updates Mana in intervals of 2s, which is correct
+            if (recentCast) // SkyFire Updates Mana in intervals of 2s, which is correct
                 addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_INTERRUPTED_FLAT_MODIFIER) *  ((0.001f * _regenTimer) + CalculatePctF(0.001f, spellHaste)) * ManaIncreaseRate;
             else
                 addvalue += GetFloatValue(UNIT_FIELD_POWER_REGEN_FLAT_MODIFIER) *  ((0.001f * _regenTimer) + CalculatePctF(0.001f, spellHaste)) * ManaIncreaseRate;
